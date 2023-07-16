@@ -1,5 +1,5 @@
 <script>
-  export let text = '';
+  export let text = "";
 
   let isVisible = false;
 
@@ -13,7 +13,7 @@
 </script>
 
 <span on:mouseenter={showTooltip} on:mouseleave={hideTooltip}>
-  <slot></slot>
+  <slot />
   {#if isVisible}
     <div class="tooltip">{text}</div>
   {/if}

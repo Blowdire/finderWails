@@ -58,9 +58,9 @@ func (a *App) ListDir(path string) utilities.ListingResults {
 
 		if file.IsDir() {
 
-			dirs_listed = append(dirs_listed, utilities.SearchResult{Filename: file.Name(), Filepath: filePath})
+			dirs_listed = append(dirs_listed, utilities.SearchResult{Filename: file.Name(), Filepath: filePath, IsDir: true})
 		} else {
-			files_listed = append(files_listed, utilities.SearchResult{Filename: file.Name(), Filepath: filePath})
+			files_listed = append(files_listed, utilities.SearchResult{Filename: file.Name(), Filepath: filePath, IsDir: false})
 		}
 	}
 	return utilities.ListingResults{Files: files_listed, Directories: dirs_listed}
@@ -73,22 +73,22 @@ func (a *App) Search(rootPath string, pattern string) []utilities.SearchResult {
 	var wgScan sync.WaitGroup                      // Create a wait group to synchronize goroutines
 	filePaths := make(chan utilities.SearchResult) // Create a channel to receive file paths
 	dirPaths := make(chan string)
+	waitChan := make(chan struct{}, 9000)
 
 	// Launch a goroutine to traverse the filesystem and send file paths to the channel
 	wgScan.Add(1)
 	go func() {
-		defer close(filePaths)
-		defer close(dirPaths)
-		traverse(rootPath, filePaths, dirPaths, &wgScan)
-		wgScan.Wait()
+
+		traverse(rootPath, filePaths, &wgScan, waitChan)
+
 		fmt.Println("Done traversing filesystem")
 
 	}()
 	filteredFiles := make(chan utilities.SearchResult)
-
 	wg.Add(1)
 	go func() {
 		defer close(filteredFiles)
+
 		processFiles(filePaths, pattern, filteredFiles, &wg)
 	}()
 	fmt.Println("Done processing files")
@@ -102,12 +102,17 @@ func (a *App) Search(rootPath string, pattern string) []utilities.SearchResult {
 			files = append(files, file)
 		}
 	}()
+	wgScan.Wait()
+	close(filePaths)
+	close(dirPaths)
+	close(waitChan)
+	wg.Wait()
 	wgFinal.Wait()
 	fmt.Println(len(files))
 	return files
 }
 
-func traverse(dir string, filePaths chan<- utilities.SearchResult, dirPaths chan<- string, wg *sync.WaitGroup) {
+func traverse(dir string, filePaths chan<- utilities.SearchResult, wg *sync.WaitGroup, waitChan chan struct{}) {
 	defer wg.Done()
 	files, err := os.ReadDir(dir)
 	if err != nil {
@@ -119,11 +124,21 @@ func traverse(dir string, filePaths chan<- utilities.SearchResult, dirPaths chan
 		filePath := filepath.Join(dir, file.Name())
 
 		if file.IsDir() {
+
 			wg.Add(1)
-			go traverse(filePath, filePaths, dirPaths, wg)
+
+			select {
+			case waitChan <- struct{}{}:
+				go func() {
+					defer func() { <-waitChan }()
+					traverse(filePath, filePaths, wg, waitChan)
+				}()
+			default:
+				traverse(filePath, filePaths, wg, waitChan)
+			}
 			// Recurse into subdirectories
 		} else {
-			filePaths <- utilities.SearchResult{Filename: file.Name(), Filepath: filePath}
+			filePaths <- utilities.SearchResult{Filename: file.Name(), Filepath: filePath, IsDir: false}
 			// Send file path to the channel
 		}
 	}
