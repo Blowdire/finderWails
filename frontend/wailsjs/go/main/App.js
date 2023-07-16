@@ -6,10 +6,6 @@ export function GetPartitions() {
   return window['go']['main']['App']['GetPartitions']();
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
-}
-
 export function ListDir(arg1) {
   return window['go']['main']['App']['ListDir'](arg1);
 }

@@ -1,6 +1,6 @@
 <script>
   import logo from './assets/images/logo-universal.png'
-  import {Greet, Search, GetPartitions, ListDir, OpenFile} from '../wailsjs/go/main/App.js'
+  import {Search, GetPartitions, ListDir, OpenFile} from '../wailsjs/go/main/App.js'
   import {onMount} from 'svelte'
   import Tootltip from './Components/Tootltip.svelte';
   import { Jumper } from 'svelte-loading-spinners';
@@ -19,9 +19,7 @@
     drives = await GetPartitions();
   })
 
-  function greet() {
-    Greet(name).then(result => resultText = result)
-  }
+ 
  async function handleSearch(){
   if(searchTerm !== ''){
     loading = true
