@@ -14,6 +14,10 @@ export function ListDir(arg1) {
   return window['go']['main']['App']['ListDir'](arg1);
 }
 
+export function OpenFile(arg1) {
+  return window['go']['main']['App']['OpenFile'](arg1);
+}
+
 export function Search(arg1, arg2) {
   return window['go']['main']['App']['Search'](arg1, arg2);
 }

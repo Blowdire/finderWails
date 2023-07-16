@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 
@@ -34,9 +35,9 @@ func (a *App) Greet(name string) string {
 func (a *App) GetPartitions() []string {
 	r := []string{}
 	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
-		f, err := os.Open(string(drive) + ":\\\\")
+		f, err := os.Open(string(drive) + ":\\")
 		if err == nil {
-			drivePath := string(drive) + ":\\\\"
+			drivePath := string(drive) + ":\\"
 			r = append(r, drivePath)
 			f.Close()
 		}
@@ -66,7 +67,7 @@ func (a *App) ListDir(path string) utilities.ListingResults {
 	return utilities.ListingResults{Files: files_listed, Directories: dirs_listed}
 }
 
-func (a *App) Search(rootPath string, pattern string) []string {
+func (a *App) Search(rootPath string, pattern string) []utilities.SearchResult {
 	// Set the root directory for scanning
 
 	var wg sync.WaitGroup
@@ -94,12 +95,12 @@ func (a *App) Search(rootPath string, pattern string) []string {
 	fmt.Println("Done processing files")
 	var wgFinal sync.WaitGroup
 
-	files := make([]string, 0)
+	files := make([]utilities.SearchResult, 0)
 	wgFinal.Add(1)
 	go func() {
 		defer wgFinal.Done()
 		for file := range filteredFiles {
-			files = append(files, file.Filepath)
+			files = append(files, file)
 		}
 	}()
 	wgFinal.Wait()
@@ -128,9 +129,15 @@ func traverse(dir string, filePaths chan<- utilities.SearchResult, dirPaths chan
 		}
 	}
 }
+func (a *App) OpenFile(path string) {
+	fmt.Println("Opening file:", path)
+	exec.Command("explorer", "/select,", path).Run()
+}
 
 // processFiles is the function that handles the processing of file paths received from the channel
 func processFiles(filePaths <-chan utilities.SearchResult, pattern string, filteredFileChannel chan<- utilities.SearchResult, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	for filePath := range filePaths {
 		//Process the file path (e.g., perform operations on the file)
 		if fuzzy.Match(pattern, filePath.Filename) {

@@ -8,4 +8,6 @@ export function Greet(arg1:string):Promise<string>;
 
 export function ListDir(arg1:string):Promise<utilities.ListingResults>;
 
-export function Search(arg1:string,arg2:string):Promise<Array<string>>;
+export function OpenFile(arg1:string):Promise<void>;
+
+export function Search(arg1:string,arg2:string):Promise<Array<utilities.SearchResult>>;
